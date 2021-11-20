@@ -1,8 +1,49 @@
-﻿@{
+﻿@model CadastroPessoas.Models.Pessoa
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+
+    @if (@Model != null)
+    {
+
+        <p>
+            @Html.DisplayNameFor(model => model.Id): @Html.DisplayFor(model => model.Id)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Nome): @Html.DisplayFor(model => model.Nome)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Cpf): @Html.DisplayFor(model => model.Cpf)
+        </p>
+        <p>
+            Id Endereço: @Html.DisplayFor(model => model.Endereco.Id)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Endereco.Logradouro): @Html.DisplayFor(model => model.Endereco.Logradouro)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Endereco.Numero): @Html.DisplayFor(model => model.Endereco.Numero)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Endereco.Cep): @Html.DisplayFor(model => model.Endereco.Cep)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Endereco.Bairro): @Html.DisplayFor(model => model.Endereco.Bairro)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Endereco.Cidade): @Html.DisplayFor(model => model.Endereco.Cidade)
+        </p>
+        <p>
+            @Html.DisplayNameFor(model => model.Endereco.Estado): @Html.DisplayFor(model => model.Endereco.Estado)
+        </p>
+        @foreach (var tel in Model.Telefones) 
+        {
+            <p>@tel.Ddd - @tel.Numero - @tel.Tipo.Tipo (@tel.Id) </p>
+        }
+    }
 </div>

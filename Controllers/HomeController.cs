@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using CadastroPessoas.Models;
+using CadastroPessoas.Models.Dao;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Pessoas.Models;
@@ -20,11 +22,67 @@ namespace Pessoas.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            PessoaDao dao = new PessoaDao();
+
+            Pessoa p = dao.consulte(11234451760);
+            
+            return View(p);
         }
 
         public IActionResult Privacy()
         {
+            return View();
+        }
+
+        public IActionResult Inserir()
+        {
+            Pessoa p = new Pessoa();
+            p.Cpf = 11234451760;
+            p.Nome = "Rogick";
+            p.Endereco = new Endereco();
+            p.Endereco.Logradouro = "Rua Boipeba";
+            p.Endereco.Numero = 160;
+            p.Endereco.Cep = 21557090;
+            p.Endereco.Bairro = "Marechal Hermes";
+            p.Endereco.Cidade = "Rio de Janeiro";
+            p.Endereco.Estado = "RJ";
+            p.Telefones = new List<Telefone> {
+                new Telefone {Ddd = 21, Numero = 30168859, Tipo = new TipoTelefone(1, "Telefone") },
+                new Telefone {Ddd = 21, Numero = 996743188, Tipo = new TipoTelefone(2, "Celular") }
+            };
+
+            new PessoaDao().insira(p);
+            return View(p);
+        }
+
+        public IActionResult Alterar()
+        {
+            PessoaDao dao = new PessoaDao();
+
+            Pessoa p = dao.consulte(11234451760);
+            p.Nome = "Rogick Alves Manoel";
+            p.Endereco = new Endereco();
+            p.Endereco.Logradouro = "Rua Boipeba";
+            p.Endereco.Numero = 160;
+            p.Endereco.Cep = 21557090;
+            p.Endereco.Bairro = "Marechal Hermes";
+            p.Endereco.Cidade = "Rio de Janeiro";
+            p.Endereco.Estado = "RJ";
+            p.Telefones.Clear();
+            p.Telefones.Add(new Telefone {Ddd = 21, Numero = 30168859, Tipo = new TipoTelefone(1, "Telefone")});
+
+            new PessoaDao().altere(p);
+            return View(p);
+        }
+
+        public IActionResult Excluir()
+        {
+            PessoaDao dao = new PessoaDao();
+
+            Pessoa p = dao.consulte(11234451760);
+
+            dao.exclua(p);
+           
             return View();
         }
 

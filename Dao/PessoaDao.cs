@@ -8,7 +8,7 @@ namespace CadastroPessoas.Models.Dao
     public class PessoaDao
     {
 
-         string connectionString = @"Data Source=localhost,11433;Initial Catalog=pim_viii;User Id=sa;Password=Pedrinho16*;"; 
+         string connectionString = "Server=localhost\\SQLEXPRESS;Database=pim_viii;Trusted_Connection=True;Encrypt=False;"; 
 
          private SqlConnection connection;
 
@@ -23,13 +23,17 @@ namespace CadastroPessoas.Models.Dao
                  connection.Dispose();
                  connection = new SqlConnection(connectionString);
              }
-             connection.Open();
+
+             if (connection.State != ConnectionState.Open) 
+                connection.Open();
              return connection;
          }
 
-         private SqlCommand createSqlCommand(string sql, Dictionary<string, object> parameters) 
+         private SqlCommand createSqlCommand(string sql, SqlTransaction transaction, Dictionary<string, object> parameters) 
          {
              var cmd = getConnection().CreateCommand();
+             if (transaction != null)
+                cmd.Transaction = transaction;
              cmd.CommandText = sql;
              
              if (parameters != null)
@@ -39,20 +43,20 @@ namespace CadastroPessoas.Models.Dao
             return cmd;
          }
 
-         private int executeUpdateSql(string sql, Dictionary<string, object> parameters)
+         private int executeUpdateSql(string sql, SqlTransaction transaction, Dictionary<string, object> parameters)
          {
-             using (var cmd = createSqlCommand(sql, parameters))
+             using (var cmd = createSqlCommand(sql, transaction, parameters))
              {
                  return cmd.ExecuteNonQuery();
              };
          }
 
-         private int executeInsertSql(string sql, Dictionary<string, object> parameters)
+         private int executeInsertSql(string sql, SqlTransaction transaction, Dictionary<string, object> parameters)
          {
              sql += ";Select SCOPE_IDENTITY();";
-             using (var cmd = createSqlCommand(sql, parameters))
+             using (var cmd = createSqlCommand(sql, transaction, parameters))
              {
-                 return (int)cmd.ExecuteScalar();
+                 return Convert.ToInt32(cmd.ExecuteScalar());
              };
          }
 
@@ -63,7 +67,7 @@ namespace CadastroPessoas.Models.Dao
 
          private IList<Dictionary<string, object>> executeSql(string sql, Dictionary<string, object> parameters)
          {
-             using (var cmd = createSqlCommand(sql, parameters))
+             using (var cmd = createSqlCommand(sql, null, parameters))
              {
 
                 using (SqlDataReader reader = cmd.ExecuteReader()) 
@@ -85,18 +89,18 @@ namespace CadastroPessoas.Models.Dao
 
         public bool exclua(Pessoa p)
         {
-            using (var trans = connection.BeginTransaction()) 
+            using (var trans = getConnection().BeginTransaction()) 
             {
                  try
                 {
-                    deletarPessoaTelefone(p);
-                    executeUpdateSql(@"Delete FROM PESSOA Where ID_PESSOA = " + p.Id, null);
+                    deletarPessoaTelefone(p, trans);
+                    executeUpdateSql(@"Delete FROM PESSOA Where ID = " + p.Id, trans, null);
                     
                     // Remover endereços órfãos
-                    executeUpdateSql(@"Delete FROM ENDERECO e Where not exists (Select 1 From PESSOA p Where p.ID_ENDERECO = e.ID)", null);
+                    executeUpdateSql(@"Delete FROM ENDERECO Where not exists (Select 1 From PESSOA p Where p.ENDERECO = ENDERECO.ID)", trans, null);
 
                     // Remover telefone órfãos
-                    executeUpdateSql(@"Delete FROM TELEFONE t Where not exists (Select 1 From PESSOA_TELEFONE pt Where pt.ID_TELEFONE = t.ID)", null);
+                    executeUpdateSql(@"Delete FROM TELEFONE Where not exists (Select 1 From PESSOA_TELEFONE pt Where pt.ID_TELEFONE = TELEFONE.ID)", trans, null);
 
                     trans.Commit();
                     return true;
@@ -113,12 +117,12 @@ namespace CadastroPessoas.Models.Dao
 
         public bool insira(Pessoa p)
         {
-            using (var trans = connection.BeginTransaction()) 
+            using (var trans = getConnection().BeginTransaction()) 
             {
                 try
                 {
-                    salvarOuAtualizarEndereco(p.Endereco);
-                    salvarOuAtualizarPessoa(p);
+                    salvarOuAtualizarEndereco(p.Endereco, trans);
+                    salvarOuAtualizarPessoa(p, trans);
 
                     trans.Commit();
                     return true;
@@ -136,12 +140,12 @@ namespace CadastroPessoas.Models.Dao
 
         public bool altere(Pessoa p)
         {
-            using (var trans = connection.BeginTransaction()) 
+            using (var trans = getConnection().BeginTransaction()) 
             {
                 try
                 {
-                    salvarOuAtualizarEndereco(p.Endereco);
-                    salvarOuAtualizarPessoa(p);
+                    salvarOuAtualizarEndereco(p.Endereco, trans);
+                    salvarOuAtualizarPessoa(p, trans);
 
                     trans.Commit();
                     return true;
@@ -157,7 +161,7 @@ namespace CadastroPessoas.Models.Dao
             }
         }
 
-        private void salvarOuAtualizarEndereco(Endereco endereco) 
+        private void salvarOuAtualizarEndereco(Endereco endereco, SqlTransaction trans) 
         {
             string sql = endereco.Id != 0 ? 
                     "Update ENDERECO Set LOGRADOURO = @LOGRADOURO, NUMERO = @NUMERO, CEP = @CEP, BAIRRO = @BAIRRO,  " +
@@ -175,37 +179,43 @@ namespace CadastroPessoas.Models.Dao
             parameters.Add("CIDADE", endereco.Cidade);
             parameters.Add("ESTADO", endereco.Estado);
 
-            if (endereco.Id != 0) {
+            if (endereco.Id != 0) 
+            {
                 parameters.Add("ID", endereco.Id);
-                executeUpdateSql(sql, parameters);
-            } else {
-                endereco.Id = executeInsertSql(sql, parameters);
+                executeUpdateSql(sql, trans, parameters);
+            } 
+            else 
+            {
+                endereco.Id = executeInsertSql(sql, trans, parameters);
             }
         }
 
-        private void salvarOuAtualizarPessoa(Pessoa pessoa) {
+        private void salvarOuAtualizarPessoa(Pessoa pessoa, SqlTransaction trans) {
             bool atualizacao = pessoa.Id != 0;
             string sql = atualizacao ? 
-                    "Update PESSOA Set NOME = @NOME, CPF = @CPF, ID_ENDERECO = @ID_ENDERECO Where ID = @ID" 
+                    "Update PESSOA Set NOME = @NOME, CPF = @CPF, ID_ENDERECO = @ENDERECO Where ID = @ID" 
                     :
-                    "Insert Into PESSOA(NOME, CPF, ID_ENDERECO) Values (@NOME, @CPF, @ID_ENDERECO);";
+                    "Insert Into PESSOA(NOME, CPF, ENDERECO) Values (@NOME, @CPF, @ENDERECO);";
 
             Dictionary<string, object> parameters = new Dictionary<string, object>();
             parameters.Add("NOME", pessoa.Nome);
             parameters.Add("CPF", pessoa.Cpf);
-            parameters.Add("ID_ENDERECO", pessoa.Endereco?.Id);
+            parameters.Add("ENDERECO", pessoa.Endereco?.Id);
 
-            if (atualizacao) {
+            if (atualizacao) 
+            {
                 parameters.Add("ID", pessoa.Id);
-                executeUpdateSql(sql, parameters);
-            } else {
-                pessoa.Id = executeInsertSql(sql, parameters);
+                executeUpdateSql(sql, trans, parameters);
+            } 
+            else 
+            {
+                pessoa.Id = executeInsertSql(sql, trans, parameters);
             }
 
-            salvarOuAtualizarTelefonesPessoa(pessoa, atualizacao);
+            salvarOuAtualizarTelefonesPessoa(pessoa, trans, atualizacao);
         }
 
-        private void salvarOuAtualizarTelefone(Telefone telefone) {
+        private void salvarOuAtualizarTelefone(Telefone telefone, SqlTransaction trans) {
             string sql = telefone.Id != 0 ? 
                     "Update TELEFONE Set NUMERO = @NUMERO, DDD = @DDD, TIPO = @TIPO Where ID = @ID" 
                     :
@@ -216,29 +226,33 @@ namespace CadastroPessoas.Models.Dao
             parameters.Add("DDD", telefone.Ddd);
             parameters.Add("TIPO", telefone.Tipo?.Id);
 
-            if (telefone.Id != 0) {
+            if (telefone.Id != 0) 
+            {
                 parameters.Add("ID", telefone.Id);
-                executeUpdateSql(sql, parameters);
-            } else {
-                telefone.Id = executeInsertSql(sql, parameters);
+                executeUpdateSql(sql, trans, parameters);
+            } 
+            else 
+            {
+                telefone.Id = executeInsertSql(sql, trans, parameters);
             }
         }
 
-        private void salvarOuAtualizarTelefonesPessoa(Pessoa p, bool atualizacao) {
-            if (atualizacao) {
-                deletarPessoaTelefone(p);
-            }
+        private void salvarOuAtualizarTelefonesPessoa(Pessoa p, SqlTransaction trans, bool atualizacao) {
+            if (atualizacao) 
+                deletarPessoaTelefone(p, trans);
 
-            foreach(Telefone telefone in p.Telefones) {
-                    salvarOuAtualizarTelefone(telefone);
-                    executeInsertSql("Insert Into PESSOA_TELEFONE (ID_PESSOA, ID_TELEFONE) Values (@ID_PESSOA, @ID_TELEFONE)", 
-                                     new Dictionary<string, object>{ {"@ID_PESSOA", p.Id}, {"@ID_PESSOA", telefone.Id}});
-            }
+            if (p.Telefones != null)
+                foreach(Telefone telefone in p.Telefones) 
+                {
+                        salvarOuAtualizarTelefone(telefone, trans);
+                        executeUpdateSql("Insert Into PESSOA_TELEFONE (ID_PESSOA, ID_TELEFONE) Values (@ID_PESSOA, @ID_TELEFONE)", trans,
+                                        new Dictionary<string, object>{ {"@ID_PESSOA", p.Id}, {"@ID_TELEFONE", telefone.Id}});
+                }
         }
 
-        private void deletarPessoaTelefone(Pessoa p) 
+        private void deletarPessoaTelefone(Pessoa p, SqlTransaction trans) 
         {
-            executeUpdateSql(@"Delete FROM PESSOA_TELEFONE Where ID_PESSOA = " + p.Id, null);
+            executeUpdateSql(@"Delete FROM PESSOA_TELEFONE Where ID_PESSOA = " + p.Id, trans, null);
         }
 
         public Pessoa consulte(long cpf)
@@ -247,19 +261,22 @@ namespace CadastroPessoas.Models.Dao
             {
                 IList<Dictionary<string, object>> dados = executeSql("Select * From PESSOA Where CPF = " + cpf);
 
-                if (dados.Count > 0) {
+                if (dados.Count > 0) 
+                {
                     Dictionary<string, object> linha = dados[0];
 
                     Pessoa pessoa = new Pessoa();
                     pessoa.Id = Convert.ToInt32(linha["ID"]);
                     pessoa.Nome = linha["NOME"].ToString();
                     pessoa.Cpf = Convert.ToInt64(linha["CPF"]);
-                    pessoa.Endereco = buscarEnderecoPorId(Convert.ToInt32(linha["ID_ENDERECO"]));
+                    pessoa.Endereco = buscarEnderecoPorId(Convert.ToInt32(linha["ENDERECO"]));
                     pessoa.Telefones = buscarTelefonesPorPessoa(pessoa.Id);
 
                     return pessoa;
 
-                } else {
+                } 
+                else 
+                {
                     Console.WriteLine("Pessoa não encontrada com o CPF " + cpf);
                 }
 
@@ -274,7 +291,8 @@ namespace CadastroPessoas.Models.Dao
         {
             IList<Dictionary<string, object>> dados = executeSql("Select * From ENDERECO Where ID = " + idEndereco);
 
-            if (dados.Count > 0) {
+            if (dados.Count > 0) 
+            {
                 Dictionary<string, object> linha = dados[0];
                 Endereco endereco = new Endereco();
 
@@ -293,14 +311,15 @@ namespace CadastroPessoas.Models.Dao
 
         private IList<Telefone> buscarTelefonesPorPessoa(int idPessoa) 
         {
-            string sql = "Select tel.ID, tel.NUMERO, tel.DDD, tel.TIPO ID_TIPO, tp.TIPO NM_TIPO " +
-                         "From TELEFONE tel Inner Join TELEFONE_TIPO ip On tel.TIPO = tp.ID " +
+            string sql = "Select tel.ID, tel.NUMERO, tel.DDD, tel.TIPO ID_TIPO, tt.TIPO NM_TIPO " +
+                         "From TELEFONE tel Inner Join TELEFONE_TIPO tt On tel.TIPO = tt.ID " +
                          "   Inner Join PESSOA_TELEFONE pt On tel.ID = pt.ID_TELEFONE " +
                          "Where pt.ID_PESSOA = " + idPessoa;
             IList<Dictionary<string, object>> dados = executeSql(sql);
 
             IList<Telefone> telefones = new List<Telefone>();
-            foreach (Dictionary<string, object> linha in dados) {
+            foreach (Dictionary<string, object> linha in dados) 
+            {
                 Telefone telefone = new Telefone();
                 telefone.Id = Convert.ToInt32(linha["ID"]);
                 telefone.Numero = Convert.ToInt32(linha["NUMERO"]);;
