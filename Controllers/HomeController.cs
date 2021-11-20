@@ -21,7 +21,7 @@ namespace Pessoas.Controllers
 
         public IActionResult Index()
         {
-            PessoaDao dao = new PessoaDao();
+            PessoaDAO dao = new PessoaDAO();
 
             Pessoa p = dao.consulte(11234451760);
             
@@ -50,13 +50,13 @@ namespace Pessoas.Controllers
                 new Telefone {Ddd = 21, Numero = 996743188, Tipo = new TipoTelefone(2, "Celular") }
             };
 
-            new PessoaDao().insira(p);
+            new PessoaDAO().insira(p);
             return View(p);
         }
 
         public IActionResult Alterar()
         {
-            PessoaDao dao = new PessoaDao();
+            PessoaDAO dao = new PessoaDAO();
 
             Pessoa p = dao.consulte(11234451760);
             p.Nome = "Rogick Alves Manoel";
@@ -70,13 +70,13 @@ namespace Pessoas.Controllers
             p.Telefones.Clear();
             p.Telefones.Add(new Telefone {Ddd = 21, Numero = 30168859, Tipo = new TipoTelefone(1, "Telefone")});
 
-            new PessoaDao().altere(p);
+            new PessoaDAO().altere(p);
             return View(p);
         }
 
         public IActionResult Excluir()
         {
-            PessoaDao dao = new PessoaDao();
+            PessoaDAO dao = new PessoaDAO();
 
             Pessoa p = dao.consulte(11234451760);
 

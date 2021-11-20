@@ -5,7 +5,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Pessoas.Models.Dao
 {
-    public class PessoaDao
+    public class PessoaDAO
     {
 
          string connectionString = "Server=localhost\\SQLEXPRESS;Database=pim_viii;Trusted_Connection=True;Encrypt=False;"; 
