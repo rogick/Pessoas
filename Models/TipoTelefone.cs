@@ -1,4 +1,4 @@
-namespace CadastroPessoas.Models
+namespace Pessoas.Models
 {
   public class TipoTelefone
   {

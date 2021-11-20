@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
-namespace CadastroPessoas.Models.Dao
+namespace Pessoas.Models.Dao
 {
     public class PessoaDao
     {

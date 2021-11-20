@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CadastroPessoas.Models {
+namespace Pessoas.Models {
 
   public class Pessoa {
 

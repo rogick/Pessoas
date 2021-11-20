@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using CadastroPessoas.Models;
-using CadastroPessoas.Models.Dao;
+using Pessoas.Models;
+using Pessoas.Models.Dao;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Pessoas.Models;
 
 namespace Pessoas.Controllers
 {
