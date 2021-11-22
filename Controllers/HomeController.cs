@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using Pessoas.Models;
-using Pessoas.Models.Dao;
+using Pessoas.Dao;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -21,11 +18,12 @@ namespace Pessoas.Controllers
 
         public IActionResult Index()
         {
-            PessoaDAO dao = new PessoaDAO();
-
-            Pessoa p = dao.consulte(11234451760);
-            
-            return View(p);
+            using (PessoaDAO dao = new PessoaDAO()) 
+            {
+                Pessoa p = dao.consulte(11234451760);
+                
+                return View(p);
+            }
         }
 
         public IActionResult Privacy()
@@ -50,39 +48,43 @@ namespace Pessoas.Controllers
                 new Telefone {Ddd = 21, Numero = 996743188, Tipo = new TipoTelefone(2, "Celular") }
             };
 
-            new PessoaDAO().insira(p);
-            return View(p);
+            using(var dao = new PessoaDAO()) 
+            {
+                dao.insira(p);
+                return View(p);
+            };
         }
 
         public IActionResult Alterar()
         {
-            PessoaDAO dao = new PessoaDAO();
+            using (PessoaDAO dao = new PessoaDAO()) 
+            {
+                Pessoa p = dao.consulte(11234451760);
+                p.Nome = "Rogick Alves Manoel";
+                p.Endereco = new Endereco();
+                p.Endereco.Logradouro = "Rua Boipeba";
+                p.Endereco.Numero = 160;
+                p.Endereco.Cep = 21557090;
+                p.Endereco.Bairro = "Marechal Hermes";
+                p.Endereco.Cidade = "Rio de Janeiro";
+                p.Endereco.Estado = "RJ";
+                p.Telefones.Clear();
+                p.Telefones.Add(new Telefone {Ddd = 21, Numero = 30168859, Tipo = new TipoTelefone(1, "Telefone")});
 
-            Pessoa p = dao.consulte(11234451760);
-            p.Nome = "Rogick Alves Manoel";
-            p.Endereco = new Endereco();
-            p.Endereco.Logradouro = "Rua Boipeba";
-            p.Endereco.Numero = 160;
-            p.Endereco.Cep = 21557090;
-            p.Endereco.Bairro = "Marechal Hermes";
-            p.Endereco.Cidade = "Rio de Janeiro";
-            p.Endereco.Estado = "RJ";
-            p.Telefones.Clear();
-            p.Telefones.Add(new Telefone {Ddd = 21, Numero = 30168859, Tipo = new TipoTelefone(1, "Telefone")});
-
-            new PessoaDAO().altere(p);
-            return View(p);
+                dao.altere(p);
+                return View(p);
+            }
         }
 
         public IActionResult Excluir()
         {
-            PessoaDAO dao = new PessoaDAO();
-
-            Pessoa p = dao.consulte(11234451760);
-
-            dao.exclua(p);
-           
-            return View();
+            using (PessoaDAO dao = new PessoaDAO()) 
+            {
+                Pessoa p = dao.consulte(11234451760);
+                dao.exclua(p);
+            
+                return View();
+            }
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
