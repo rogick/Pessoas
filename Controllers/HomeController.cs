@@ -4,6 +4,7 @@ using Pessoas.Models;
 using Pessoas.Dao;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Pessoas.Service;
 
 namespace Pessoas.Controllers
 {
@@ -18,9 +19,9 @@ namespace Pessoas.Controllers
 
         public IActionResult Index()
         {
-            using (PessoaDAO dao = new PessoaDAO()) 
+            using (PessoaService service = new PessoaService()) 
             {
-                Pessoa p = dao.consulte(11234451760);
+                Pessoa p = service.consulte(11234451760);
                 
                 return View(p);
             }
@@ -48,18 +49,18 @@ namespace Pessoas.Controllers
                 new Telefone {Ddd = 21, Numero = 996743188, Tipo = new TipoTelefone(2, "Celular") }
             };
 
-            using(var dao = new PessoaDAO()) 
+            using (PessoaService service = new PessoaService()) 
             {
-                dao.insira(p);
+                service.insira(p);
                 return View(p);
             };
         }
 
         public IActionResult Alterar()
         {
-            using (PessoaDAO dao = new PessoaDAO()) 
+            using (PessoaService service = new PessoaService()) 
             {
-                Pessoa p = dao.consulte(11234451760);
+                Pessoa p = service.consulte(11234451760);
                 p.Nome = "Rogick Alves Manoel";
                 p.Endereco = new Endereco();
                 p.Endereco.Logradouro = "Rua Boipeba";
@@ -71,17 +72,17 @@ namespace Pessoas.Controllers
                 p.Telefones.Clear();
                 p.Telefones.Add(new Telefone {Ddd = 21, Numero = 30168859, Tipo = new TipoTelefone(1, "Telefone")});
 
-                dao.altere(p);
+                service.altere(p);
                 return View(p);
             }
         }
 
         public IActionResult Excluir()
         {
-            using (PessoaDAO dao = new PessoaDAO()) 
+            using (PessoaService service = new PessoaService())
             {
-                Pessoa p = dao.consulte(11234451760);
-                dao.exclua(p);
+                Pessoa p = service.consulte(11234451760);
+                service.exclua(p);
             
                 return View();
             }
